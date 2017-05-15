@@ -2,7 +2,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js" type="text/javascript"></script>
 	<title>Spring Force Calculator</title>
   </head>
   <style>
@@ -37,18 +36,10 @@
     </div></p>
 </body>
 <script>
-$(document).ready(function(){
-    $("input#calc").click(function(){
-        const E=Number($("input#E")[0].value)*1e9;
-        const u=Number($("input#u")[0].value);
-        const n=Number($("input#n")[0].value);
-        const d=Number($("input#d")[0].value)*1e-3;
-        const D=Number($("input#D")[0].value)*1e-3;
-        const k=calcSpringK(E,u,n,d,D); 
-        const v=$("div#result")[0].innerHTML="k="+k*1e-3+" N/mm"; 
-    });
-});
-calcSpringK=function(E,u,n,d,D){
+const getID = function(id){
+    return document.getElementById(id);
+}
+const calcSpringK=function(E,u,n,d,D){
     //E=Young's modulus
     //u=Poisson ratio
     //n=number of active windings
@@ -58,5 +49,16 @@ calcSpringK=function(E,u,n,d,D){
     const k=(E*Math.pow(d,4))/(16*(1+u)*Math.pow(D-d,3)*n);
     return k;
 }
+document.addEventListener("DOMContentLoaded", function(){
+    getID("calc").onclick=function(){
+        const E=Number(getID("E").value)*1e9;
+        const u=Number(getID("u").value);
+        const n=Number(getID("n").value);
+        const d=Number(getID("d").value)*1e-3;
+        const D=Number(getID("D").value)*1e-3;
+        const k=calcSpringK(E,u,n,d,D); 
+        getID("result").innerHTML="k="+k*1e-3+" N/mm";
+    }
+});
 </script>
 </html>
