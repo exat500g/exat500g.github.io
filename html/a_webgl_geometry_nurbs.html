@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - geometry - NURBS</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="debug" style="position:absolute; left:100px"></canvas>
+
+		<script src="threejs/three.js"></script>
+		<script src="threejs/libs/stats.min.js"></script>
+        <script src="threejs/controls/OrbitControls.js"></script>
+        <script src="threejs/QuickHull.js"></script>
+        <script src="threejs/geometries/ConvexGeometry.js"></script>
+
+		<script>
+
+			var container, stats;
+
+			var camera, scene, renderer;
+			var group;
+
+			var targetRotation = 0;
+			var targetRotationOnMouseDown = 0;
+
+			var mouseX = 0;
+			var mouseXOnMouseDown = 0;
+
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+                domElement = document.getElementById('debug');
+				document.body.appendChild( container );
+
+				var info = document.createElement( 'div' );
+				info.style.position = 'absolute';
+				info.style.top = '30px';
+				info.style.width = '100%';
+				info.style.textAlign = 'center';
+				info.innerHTML = 'Drag to spin';
+				container.appendChild( info );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( 0, 0, 750 );
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x000000 );
+				scene.add( new THREE.AmbientLight( 0x222222 ) );
+
+                var lights = [];
+                lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+                lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+                lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+
+                lights[ 0 ].position.set( 500,  500, 300 );
+                lights[ 1 ].position.set( -500, 500,  300 );
+                lights[ 2 ].position.set( -500, -500,  -300 );
+
+                scene.add( lights[ 0 ] );
+                scene.add( lights[ 1 ] );
+                scene.add( lights[ 2 ] );
+                
+				//var light = new THREE.DirectionalLight( 0xffffff, 1 );
+				//light.position.set( 1, 1, 1 );
+				//scene.add( light );
+
+				group = new THREE.Group();
+				group.position.y = 50;
+				scene.add( group );
+                
+                var orbit = new THREE.OrbitControls( camera, container );
+                //orbit.enableZoom = false;
+                
+                curve1 = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3( 150, 0, 0 ),
+                    new THREE.Vector3(   0, 150, 0 ),
+                    new THREE.Vector3(-150, 0, 0 ),
+                    new THREE.Vector3(   0,-150, 0 )
+                ],true,"catmullrom",0.8);
+                curve2 = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3( 250, 0, 50 ),
+                    new THREE.Vector3(   0, 200, 50 ),
+                    new THREE.Vector3(-150, 0, 50 ),
+                    new THREE.Vector3(   0,-250, 50 )
+                ],true,"catmullrom",0.8);
+
+                curve3 = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3( 150, 0, 150 ),
+                    new THREE.Vector3(   0, 150, 150 ),
+                    new THREE.Vector3(-150, 0, 150 ),
+                    new THREE.Vector3(   0,-250, 150 )
+                ],true,"catmullrom",0.8);
+                
+                curve4 = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3( 70, 0, 250 ),
+                    new THREE.Vector3(   0, 50, 250 ),
+                    new THREE.Vector3(-100, 0, 250 ),
+                    new THREE.Vector3(   0,-80, 250 )
+                ],true,"catmullrom",0.8);
+                
+                points = curve1.getPoints( 20 ).concat(curve2.getPoints(20)).concat(curve3.getPoints(20)).concat(curve4.getPoints(20));
+                
+                var geometry = new THREE.ConvexGeometry( points );
+               
+                var material = new THREE.MeshLambertMaterial( { color: 0x00ff00 ,opacity:0.5,transparent:true,side:THREE.DoubleSide} );
+                //var material = new THREE.MeshDepthMaterial( { color : 0xff0000 } );
+                
+                {
+                    let geometry = new THREE.CylinderGeometry( 5, 5, 500, 15 );
+                    let material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+                    let cylinder1 = new THREE.Mesh( geometry, material );
+                    let cylinder2 = new THREE.Mesh( geometry, material );
+                    cylinder1.position.set(0,0,100);
+                    cylinder1.rotation.set(1.57,0,0);
+                    group.add( cylinder1 );
+                    cylinder2.position.set(0,50,100);
+                    cylinder2.rotation.set(1.47,0,0);
+                    group.add( cylinder2 );
+                }
+                
+                var object = new THREE.Mesh( geometry, material );
+                var lines = new THREE.Line(geometry);
+				//object.position.set( 0, 0, 0 );
+				//object.scale.multiplyScalar( 1 );
+				group.add( object );
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+				//document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				//document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+				//document.addEventListener( 'touchmove', onDocumentTouchMove, false );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize() {
+
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+/*
+			function onDocumentMouseDown( event ) {
+
+				event.preventDefault();
+
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+				document.addEventListener( 'mouseout', onDocumentMouseOut, false );
+
+				mouseXOnMouseDown = event.clientX - windowHalfX;
+				targetRotationOnMouseDown = targetRotation;
+
+			}
+
+			function onDocumentMouseMove( event ) {
+
+				mouseX = event.clientX - windowHalfX;
+
+				targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.02;
+
+			}
+
+			function onDocumentMouseUp( event ) {
+
+				document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+				document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+
+			}
+
+			function onDocumentMouseOut( event ) {
+
+				document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+				document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+
+			}
+
+			function onDocumentTouchStart( event ) {
+
+				if ( event.touches.length == 1 ) {
+
+					event.preventDefault();
+
+					mouseXOnMouseDown = event.touches[ 0 ].pageX - windowHalfX;
+					targetRotationOnMouseDown = targetRotation;
+
+				}
+
+			}
+
+			function onDocumentTouchMove( event ) {
+
+				if ( event.touches.length == 1 ) {
+
+					event.preventDefault();
+
+					mouseX = event.touches[ 0 ].pageX - windowHalfX;
+					targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.05;
+
+				}
+
+			}
+*/
+			//
+
+			function animate() {
+				requestAnimationFrame( animate );
+				render();
+				stats.update();
+			}
+
+			function render() {
+				renderer.render( scene, camera );
+			}
+
+		</script>
+
+	</body>
+</html>
